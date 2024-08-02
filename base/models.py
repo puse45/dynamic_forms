@@ -18,3 +18,17 @@ class BaseModel(TimestampedModel):
         abstract = True
         ordering = ("-updated_at", "-created_at")
         get_latest_by = ("updated_at",)
+
+
+class Countable(models.Model):
+    id = models.AutoField(primary_key=True)
+    counter = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        abstract = True
+
+    @property
+    def next_number(self):
+        self.counter += 1
+        self.save()
+        return self.counter
