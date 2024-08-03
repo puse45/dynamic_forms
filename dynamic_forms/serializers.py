@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from dynamic_forms.models import Form, FormField, Field, FormFieldsOrder
+from dynamic_forms.models import Form, Field, FieldProperty
 
 
 class FieldSerializer(serializers.ModelSerializer):
@@ -12,23 +12,31 @@ class FieldSerializer(serializers.ModelSerializer):
         ]
 
 
-class FormFieldsOrderIndexSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FormFieldsOrder
-        fields = ["index"]
-
-
-class FormFieldSerializer(serializers.ModelSerializer):
-    field = FieldSerializer()
-    index = FormFieldsOrderIndexSerializer(many=True, source="form_field_orders")
+class FieldPropertySerializer(serializers.ModelSerializer):
+    options = serializers.JSONField(allow_null=True, default=list)
+    validation = serializers.JSONField(allow_null=True, default=list)
+    hidden = serializers.BooleanField(default=False)
+    required = serializers.BooleanField(default=False)
+    index = serializers.IntegerField(default=0)
+    style = serializers.CharField(default="")
 
     class Meta:
-        model = FormField
-        fields = ["field", "required", "validation", "options", "hidden", "index"]
+        model = FieldProperty
+        fields = [
+            "required",
+            "style",
+            "validation",
+            "options",
+            "hidden",
+            "index",
+            "name",
+            "field_type",
+            "label",
+        ]
 
 
 class FormSerializer(serializers.ModelSerializer):
-    fields = FormFieldSerializer(many=True)
+    fields = FieldPropertySerializer(many=True)
 
     class Meta:
         model = Form

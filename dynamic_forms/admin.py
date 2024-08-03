@@ -1,13 +1,22 @@
 from django.contrib import admin
 
-from dynamic_forms.forms import FormFieldForm
-from dynamic_forms.models import FormField, Form, Field, FormFieldsOrder
+from dynamic_forms.forms import FieldPropertyForm
+from dynamic_forms.models import Form, Field, FieldProperty
 
 
 class InlineFormFieldsOrder(admin.TabularInline):
-    model = FormFieldsOrder
-    fields = ("index", "form_field")
+    model = FieldProperty
+    fields = (
+        "index",
+        "field",
+        "required",
+        "hidden",
+        "validation",
+        "options",
+        "style",
+    )
     extra = 1
+    form = FieldPropertyForm
 
 
 @admin.register(Field)
@@ -35,32 +44,6 @@ class FieldAdmin(admin.ModelAdmin):
     save_on_top = True
 
 
-@admin.register(FormField)
-class FormFieldAdmin(admin.ModelAdmin):
-    list_display = [
-        "field",
-        "slug",
-        "required",
-        "is_archived",
-        "created_at",
-        "updated_at",
-    ]
-    list_filter = [
-        "required",
-        "is_archived",
-        "created_at",
-        "updated_at",
-    ]
-    list_display_links = [
-        "field",
-    ]
-    search_fields = ["field__name", "field__label", "id"]
-    readonly_fields = ["slug", "metadata"]
-    list_per_page = 50
-    save_on_top = True
-    form = FormFieldForm
-
-
 @admin.register(Form)
 class FormAdmin(admin.ModelAdmin):
     list_display = [
@@ -81,11 +64,11 @@ class FormAdmin(admin.ModelAdmin):
     inlines = [InlineFormFieldsOrder]
 
 
-@admin.register(FormFieldsOrder)
+@admin.register(FieldProperty)
 class FormFieldsOrderAdmin(admin.ModelAdmin):
     list_display = [
         "index",
-        "form_field",
+        "field",
         "form",
         "created_at",
         "updated_at",

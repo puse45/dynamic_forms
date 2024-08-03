@@ -9,34 +9,35 @@ class DynamicForm(forms.Form):
         form_fields = kwargs.pop("form_fields")
         super(DynamicForm, self).__init__(*args, **kwargs)
         for field in form_fields:
+            field_property = field.form_field_property.first()
             if field.field_type == FormFieldChoices.TEXT:
-                self.fields[field.field.name] = forms.CharField(
-                    label=field.field.label,
-                    required=field.required,
-                    validators=self.get_validators(field.validation),
+                self.fields[field.name] = forms.CharField(
+                    label=field.label,
+                    required=field_property.required,
+                    validators=self.get_validators(field_property.validation),
                 )
             elif field.field_type == FormFieldChoices.EMAIL:
-                self.fields[field.field.field.name] = forms.EmailField(
-                    label=field.field.label,
-                    required=field.required,
-                    validators=self.get_validators(field.validation),
+                self.fields[field.name] = forms.EmailField(
+                    label=field.label,
+                    required=field_property.required,
+                    validators=self.get_validators(field_property.validation),
                 )
             elif field.field_type == FormFieldChoices.PASSWORD:
-                self.fields[field.field.name] = forms.CharField(
-                    label=field.field.label,
-                    required=field.required,
+                self.fields[field.name] = forms.CharField(
+                    label=field.label,
+                    required=field_property.required,
                     widget=forms.PasswordInput,
-                    validators=self.get_validators(field.validation),
+                    validators=self.get_validators(field_property.validation),
                 )
             elif field.field_type == FormFieldChoices.CHECKBOX:
-                self.fields[field.field.name] = forms.BooleanField(
-                    label=field.field.label, required=field.required
+                self.fields[field.name] = forms.BooleanField(
+                    label=field.label, required=field_property.required
                 )
             elif field.field_type == FormFieldChoices.DROPDOWN:
-                self.fields[field.field.name] = forms.ChoiceField(
-                    label=field.field.label,
-                    required=field.required,
-                    choices=[(option, option) for option in field.options],
+                self.fields[field.name] = forms.ChoiceField(
+                    label=field.label,
+                    required=field_property.required,
+                    choices=[(option, option) for option in field_property.options],
                 )
 
     def get_validators(self, validations):

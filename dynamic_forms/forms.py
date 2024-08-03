@@ -4,14 +4,14 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from dynamic_forms.choices import FormFieldChoices
-from dynamic_forms.models import FormField
+from dynamic_forms.models import FieldProperty
 
 validation_pattern = r"(\w+:\w+|\w+)"
 
 
-class FormFieldForm(forms.ModelForm):
+class FieldPropertyForm(forms.ModelForm):
     class Meta:
-        model = FormField
+        model = FieldProperty
         exclude = ["created_at", "updated_at"]
 
     def clean(self):
