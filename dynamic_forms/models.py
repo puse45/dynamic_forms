@@ -51,6 +51,10 @@ class Form(BaseModel):
             self.slug = slugify(self.name)
         return super().save()
 
+    def get_form_field_property(self):
+        if hasattr(self, "form_field_property"):
+            return self.form_field_property.all()
+
 
 class FieldProperty(BaseModel):
     field = models.ForeignKey(
@@ -60,11 +64,11 @@ class FieldProperty(BaseModel):
         Form, on_delete=models.CASCADE, related_name="form_field_property"
     )
     required = models.BooleanField(default=False)
-    validation = models.JSONField(default=list, blank=True)
-    options = models.JSONField(default=list, blank=True)
-    style = models.TextField(default="", blank=True)
-    hidden = models.BooleanField(default=False)
-    index = models.IntegerField(default=0)
+    validation = models.JSONField(default=list, blank=True, null=False)
+    options = models.JSONField(default=list, blank=True, null=False)
+    style = models.TextField(default="", blank=True, null=False)
+    hidden = models.BooleanField(default=False, null=False)
+    index = models.IntegerField(default=0, null=False)
 
     slug = None
     is_archived = None

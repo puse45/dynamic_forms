@@ -2,6 +2,7 @@ from django import forms
 
 from dynamic_forms.choices import FormFieldChoices
 from django.core.validators import MinLengthValidator, MaxLengthValidator
+from secrets import compare_digest
 
 
 class DynamicForm(forms.Form):
@@ -22,7 +23,7 @@ class DynamicForm(forms.Form):
                     required=field_property.required,
                     validators=self.get_validators(field_property.validation),
                 )
-            elif field.field_type == FormFieldChoices.PASSWORD:
+            elif compare_digest(field.field_type, FormFieldChoices.PASSWORD):
                 self.fields[field.name] = forms.CharField(
                     label=field.label,
                     required=field_property.required,

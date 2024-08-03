@@ -12,31 +12,24 @@ class FieldSerializer(serializers.ModelSerializer):
         ]
 
 
-class FieldPropertySerializer(serializers.ModelSerializer):
-    options = serializers.JSONField(allow_null=True, default=list)
-    validation = serializers.JSONField(allow_null=True, default=list)
-    hidden = serializers.BooleanField(default=False)
-    required = serializers.BooleanField(default=False)
-    index = serializers.IntegerField(default=0)
-    style = serializers.CharField(default="")
-
+class FormFieldPropertiesSerializer(serializers.ModelSerializer):
     class Meta:
         model = FieldProperty
         fields = [
-            "required",
-            "style",
-            "validation",
-            "options",
-            "hidden",
-            "index",
             "name",
             "field_type",
             "label",
+            "options",
+            "required",
+            "validation",
+            "style",
+            "hidden",
+            "index",
         ]
 
 
 class FormSerializer(serializers.ModelSerializer):
-    fields = FieldPropertySerializer(many=True)
+    fields = FormFieldPropertiesSerializer(many=True, source="get_form_field_property")
 
     class Meta:
         model = Form
