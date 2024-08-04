@@ -11,10 +11,24 @@ class NestedFormField(forms.Field):
         super().__init__(*args, **kwargs)
 
     def clean(self, value):
-        if not isinstance(value, dict):
-            raise forms.ValidationError("Invalid data for nested form")
+        if value is None:
+            value = {}
+        # if not isinstance(value, dict):
+        #     raise forms.ValidationError("Invalid data for nested form")
         form_class, form_kwargs = build_dynamic_form(self.nested_form_instance)
-        nested_form = form_class(value, **form_kwargs)
+        nested_form = form_class(data=value, **form_kwargs)
+        # Check for missing fields and values
+        missing_fields = []
+        for field_name, field in nested_form.fields.items():
+
+            if field.required and field_name not in value:
+                missing_fields.append(field_name)
+
+        if missing_fields:
+            raise forms.ValidationError(
+                [f"{field} : This {field} is required." for field in missing_fields]
+            )
+
         if not nested_form.is_valid():
             nested_errors = [
                 f"{field}:{error}" for field, error in nested_form.errors.items()
