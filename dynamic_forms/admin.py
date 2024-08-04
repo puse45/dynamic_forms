@@ -26,6 +26,7 @@ class FieldAdmin(admin.ModelAdmin):
         "label",
         "field_type",
         "slug",
+        "nested_form",
         "is_archived",
         "created_at",
         "updated_at",

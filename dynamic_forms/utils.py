@@ -5,6 +5,27 @@ from django.core.validators import MinLengthValidator, MaxLengthValidator
 from secrets import compare_digest
 
 
+class NestedFormField(forms.Field):
+    def __init__(self, nested_form_instance, *args, **kwargs):
+        self.nested_form_instance = nested_form_instance
+        super().__init__(*args, **kwargs)
+
+    def clean(self, value):
+        if not isinstance(value, dict):
+            raise forms.ValidationError("Invalid data for nested form")
+        form_class, form_kwargs = build_dynamic_form(self.nested_form_instance)
+        nested_form = form_class(value, **form_kwargs)
+        if not nested_form.is_valid():
+            nested_errors = [
+                f"{field}:{error}" for field, error in nested_form.errors.items()
+            ]
+            # nested_errors = {field: error.get_json_data() for field, error in nested_form.errors.items()} # noqa
+            raise forms.ValidationError(
+                nested_errors, code="invalid", params={"field": None}
+            )
+        return nested_form.cleaned_data
+
+
 class DynamicForm(forms.Form):
     def __init__(self, *args, **kwargs):
         form_fields = kwargs.pop("form_fields")
@@ -39,6 +60,17 @@ class DynamicForm(forms.Form):
                     label=field.label,
                     required=field_property.required,
                     choices=[(option, option) for option in field_property.options],
+                )
+
+            elif field.field_type == FormFieldChoices.FILE:
+                self.fields[field.name] = forms.FileField(
+                    label=field.label, required=field_property.required
+                )
+            elif field.field_type == FormFieldChoices.NESTED:
+                self.fields[field.name] = NestedFormField(
+                    nested_form_instance=field.nested_form,
+                    label=field.label,
+                    required=field_property.required,
                 )
 
     def get_validators(self, validations):

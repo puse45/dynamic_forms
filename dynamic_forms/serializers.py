@@ -5,14 +5,12 @@ from dynamic_forms.models import Form, Field, FieldProperty
 class FieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = Field
-        fields = [
-            "name",
-            "field_type",
-            "label",
-        ]
+        fields = ["name", "field_type", "label", "nested_form"]
 
 
 class FormFieldPropertiesSerializer(serializers.ModelSerializer):
+    nested_form = serializers.SerializerMethodField()
+
     class Meta:
         model = FieldProperty
         fields = [
@@ -25,7 +23,12 @@ class FormFieldPropertiesSerializer(serializers.ModelSerializer):
             "style",
             "hidden",
             "index",
+            "nested_form",
         ]
+
+    def get_nested_form(self, obj):
+        nest = obj.field.nested_form
+        return FormSerializer(nest).data
 
 
 class FormSerializer(serializers.ModelSerializer):

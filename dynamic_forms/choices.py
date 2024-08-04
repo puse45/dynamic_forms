@@ -8,3 +8,5 @@ class FormFieldChoices(TextChoices):
     PASSWORD = "password", _("Password")
     CHECKBOX = "checkbox", _("Check Box")
     DROPDOWN = "dropdown", _("Drop Down")
+    NESTED = "nested", _("Nested Form")
+    FILE = "file", _("File")

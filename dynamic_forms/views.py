@@ -18,7 +18,7 @@ class FormSubmissionView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         form_instance = get_object_or_404(Form, slug=kwargs["slug"])
         form_class, form_kwargs = build_dynamic_form(form_instance)
-        form = form_class(data=request.data, **form_kwargs)
+        form = form_class(data=request.data, files=request.FILES, **form_kwargs)
         if form.is_valid():
             return Response(
                 {"success": True, "data": form.cleaned_data}, status=status.HTTP_200_OK

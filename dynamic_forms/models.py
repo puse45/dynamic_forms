@@ -1,20 +1,23 @@
 from django.db import models, transaction
 from django.utils.text import slugify
 
-from base.models import BaseModel, Countable
+from base.models import BaseModel
 from django.utils.translation import gettext as _
 
 from dynamic_forms.choices import FormFieldChoices
-
-
-class IndexCounter(Countable):
-    pass
 
 
 class Field(BaseModel):
     name = models.CharField(max_length=100, null=False, blank=False)
     field_type = models.CharField(max_length=20, choices=FormFieldChoices)
     label = models.CharField(max_length=100)
+    nested_form = models.ForeignKey(
+        "Form",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="nested_fields",
+    )
 
     def __str__(self):
         return self.label
@@ -109,3 +112,7 @@ class FieldProperty(BaseModel):
     @property
     def field_type(self):
         return self.field.field_type
+
+    # @property
+    # def nested_form(self):
+    #     return self.field.nested_form
