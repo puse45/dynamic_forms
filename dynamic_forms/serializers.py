@@ -28,7 +28,8 @@ class FormFieldPropertiesSerializer(serializers.ModelSerializer):
 
     def get_nested_form(self, obj):
         nest = obj.field.nested_form
-        return FormSerializer(nest).data
+        if nest:
+            return FormSerializer(nest).data
 
 
 class FormSerializer(serializers.ModelSerializer):

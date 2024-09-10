@@ -112,7 +112,3 @@ class FieldProperty(BaseModel):
     @property
     def field_type(self):
         return self.field.field_type
-
-    # @property
-    # def nested_form(self):
-    #     return self.field.nested_form
