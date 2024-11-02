@@ -4,7 +4,7 @@ import zoneinfo
 import requests
 from django import forms
 from django.conf import settings
-from django.core.exceptions import ValidationError
+
 from django_countries import countries
 from phonenumbers import PhoneNumberFormat, format_number
 from django_countries.widgets import CountrySelectWidget
@@ -12,6 +12,8 @@ from djmoney.forms.fields import MoneyField
 from djmoney.forms.widgets import MoneyWidget
 from djmoney.money import Money
 from phonenumber_field.formfields import PhoneNumberField
+from rest_framework.exceptions import ValidationError
+
 from dynamic_forms.choices import FormFieldChoices
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 from secrets import compare_digest
@@ -57,46 +59,49 @@ class ArrayWidget(forms.Textarea):
 
 class NestedFormField(forms.Field):
     def __init__(self, nested_form_instance, *args, **kwargs):
-        self.nested_form_instance = nested_form_instance
+        self.nested_form_instance = nested_form_instance.nested_form
+        self.field = nested_form_instance
         super().__init__(*args, **kwargs)
 
-    def clean(self, value):
-        if value is None:
-            value = {}
+    def clean(self, values):
+        if values is None:
+            values = []
+        if not isinstance(values, list):
+            values = [values]
+        errors = []
+        cleaned_data_list = []
+        form_cleaned_data = {}
         form_class, form_kwargs = build_dynamic_form(self.nested_form_instance)
-        nested_form = form_class(data=value, **form_kwargs)
-        # Check for missing fields and values
-        missing_fields = []
-        for field_name, field in nested_form.fields.items():
+        if not values:
+            nested_form = form_class(data={}, **form_kwargs)
+            if not nested_form.is_valid():
 
-            if field.required and field_name not in value:
-                missing_fields.append(field_name)
-
-        if missing_fields:
-            raise forms.ValidationError(
-                [f"{field} : This {field} is required." for field in missing_fields]
-            )
-
-        if not nested_form.is_valid():
-            nested_errors = [
-                f"{field}:{error}" for field, error in nested_form.errors.items()
-            ]
-            # nested_errors = {field: error.get_json_data() for field, error in nested_form.errors.items()} # noqa
-            raise forms.ValidationError(
-                nested_errors, code="invalid", params={"field": None}
-            )
-        return nested_form.cleaned_data
+                errors.append({self.field.name: [nested_form.errors]})
+        for value in values:
+            nested_form = form_class(data=value, **form_kwargs)
+            missing_fields = []
+            for field_name, field in nested_form.fields.items():
+                if field.required and field_name not in values:
+                    missing_fields.append(field_name)
+            if not nested_form.is_valid():
+                errors.append({self.field.name: nested_form.errors})
+            else:
+                form_cleaned_data.update(nested_form.cleaned_data)
+                cleaned_data_list.append(nested_form.cleaned_data)
+        if errors:
+            raise ValidationError(errors)
+        return cleaned_data_list
 
 
 class DynamicForm(forms.Form):
     def __init__(self, *args, **kwargs):
         form_fields = kwargs.pop("form_fields")
-        form_instance_id = kwargs.pop("form_instance_id")
+        form_instance = kwargs.pop("form_instance")
         super(DynamicForm, self).__init__(*args, **kwargs)
         for field in form_fields:
             field_property = (
                 field.form_field_property.select_related("form")
-                .filter(form_id=form_instance_id)
+                .filter(form=form_instance)
                 .first()
             )
             field_validators = self.get_validators(field_property.validation)
@@ -136,10 +141,11 @@ class DynamicForm(forms.Form):
                 )
             elif field.field_type == FormFieldChoices.NESTED:
                 self.fields[field.name] = NestedFormField(
-                    nested_form_instance=field.nested_form,
+                    nested_form_instance=field,
                     label=field.label,
                     required=field_property.required,
                 )
+
             elif field.field_type == FormFieldChoices.ARRAY:
                 base_field = forms.CharField()
                 self.fields[field.name] = ArrayField(
@@ -371,5 +377,5 @@ class DynamicForm(forms.Form):
 def build_dynamic_form(form_instance):
     return DynamicForm, {
         "form_fields": form_instance.fields.all(),
-        "form_instance_id": form_instance.id,
+        "form_instance": form_instance,
     }
