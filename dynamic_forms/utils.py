@@ -58,9 +58,9 @@ class ArrayWidget(forms.Textarea):
 
 
 class NestedFormField(forms.Field):
-    def __init__(self, nested_form_instance, *args, **kwargs):
-        self.nested_form_instance = nested_form_instance.nested_form
-        self.field = nested_form_instance
+    def __init__(self, nested_form_instance, field, *args, **kwargs):
+        self.nested_form_instance = nested_form_instance
+        self.field = field
         super().__init__(*args, **kwargs)
 
     def clean(self, values):
@@ -141,7 +141,8 @@ class DynamicForm(forms.Form):
                 )
             elif field.field_type == FormFieldChoices.NESTED:
                 self.fields[field.name] = NestedFormField(
-                    nested_form_instance=field,
+                    nested_form_instance=field.nested_form,
+                    field=field,
                     label=field.label,
                     required=field_property.required,
                 )

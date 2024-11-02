@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from dynamic_forms.forms import FieldPropertyForm
+from dynamic_forms.forms import FieldPropertyForm, FieldForm
 from dynamic_forms.models import Form, Field, FieldProperty
 
 
@@ -41,6 +41,7 @@ class FieldAdmin(admin.ModelAdmin):
     ]
     search_fields = ["name", "label", "id"]
     readonly_fields = ["slug", "metadata"]
+    form = FieldForm
     list_per_page = 50
     save_on_top = True
 
