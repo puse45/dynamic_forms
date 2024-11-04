@@ -4,14 +4,15 @@ from django import forms
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from dynamic_forms.choices import FormFieldChoices
-from dynamic_forms.models import FieldProperty, Field
+from .choices import FormFieldChoices
+from .models import Field, FieldProperty
 
 validation_pattern = r"(\w+:\w+|\w+)"  # "min_length:8" # noqa: B950
-date_range_validation_pattern = r"^date_range:(\d{4}-\d{2}-\d{2}),(\d{4}-\d{2}-\d{2})$"  # "date_range:1980-01-01,2025-12-31" # noqa: B950
-date_time_range_validation_pattern = r"^datetime_range:(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}),(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})$"  # datetime_range:2024-01-01T08:00:00,2025-12-31T18:00:00, datetime_range:2024-01-01 08:00:00,2025-12-31 18:00:00 # noqa: B950
-revenue_pin_validation_base_url_pattern = r"^revenue_pin_validation_base_url:http[s]?://[a-zA-Z0-9.-]+(/[a-zA-Z0-9.-]+)*$"  # "kra_base_url:https://api.example.com/validate-kra-pin" # noqa: B950
-id_validation_base_url_pattern = r"^id_validation_base_url:http[s]?://[a-zA-Z0-9.-]+(/[a-zA-Z0-9.-]+)*$"  # "id_validation_base_url:https://api.example.com/validate-kra-pin" # noqa: B950
+date_range_validation_pattern = r"^date_range:(\d{4}-\d{2}-\d{2}),(\d{4}-\d{2}-\d{2})$"  # noqa  # "date_range:1980-01-01,2025-12-31" # noqa: B950
+time_range_validation_pattern = r"^time_range:(\d{2}:\d{2}:\d{2}),(\d{2}:\d{2}:\d{2})$"  # noqa  # time_range:08:00:00,18:00:00 # noqa: B950
+date_time_range_validation_pattern = r"^datetime_range:(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}),(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})$"  # noqa  # datetime_range:2024-01-01T08:00:00,2025-12-31T18:00:00 # noqa: B950
+validation_base_url_pattern = r"^validation_url:http[s]?://[a-zA-Z0-9.-]+(:\d+)?(/[a-zA-Z0-9.-]+)*$"  # noqa  # "url:https://api.example.com/validate-kra-pin" # noqa: B950
+evaluation_base_url_pattern = r"^evaluation_url:http[s]?://[a-zA-Z0-9.-]+(:\d+)?(/[a-zA-Z0-9.-]+)*$"  # noqa  # "url:https://api.example.com/validate-kra-pin" # noqa: B950
 
 
 class FieldForm(forms.ModelForm):
@@ -41,6 +42,7 @@ class FieldPropertyForm(forms.ModelForm):
         field = self.cleaned_data.get("field")
         required = self.cleaned_data.get("required")
         validation = self.cleaned_data.get("validation")
+        validation_endpoint = self.cleaned_data.get("validation_endpoint")
         options = self.cleaned_data.get("options")
         hidden = self.cleaned_data.get("hidden")
 
@@ -56,7 +58,8 @@ class FieldPropertyForm(forms.ModelForm):
                     raise forms.ValidationError(
                         {
                             "validation": _(
-                                'Not a valid validation format ie. ["date_range:1980-01-01,2025-12-31"].'  # noqa
+                                "Not a valid validation format ie. "
+                                '["date_range:1980-01-01,2025-12-31"].'
                             )
                         }
                     )
@@ -69,45 +72,28 @@ class FieldPropertyForm(forms.ModelForm):
                     raise forms.ValidationError(
                         {
                             "validation": _(
-                                'Not a valid validation format ie. ["datetime_range:2024-01-01T08:00,2025-12-31T18:00"].'  # noqa
+                                "Not a valid validation format ie. "
+                                '["datetime_range:2024-01-01T08:00,2025-12-31T18:00"].'
                             )
                         }
                     )
 
-        if field.field_type == FormFieldChoices.KRA_PIN:
-            if not validation:
+        if field.field_type in [
+            FormFieldChoices.EXTERNAL_VALIDATION_ENDPOINT,
+            FormFieldChoices.EXTERNAL_EVALUATION_ENDPOINT,
+        ]:
+            if not validation_endpoint:
                 raise forms.ValidationError(
-                    {"validation": _("validation are required.")}
+                    {"validation_endpoint": _("validation endpoint are required.")}
                 )
-            if validation:
-                match = re.fullmatch(
-                    revenue_pin_validation_base_url_pattern, str(validation[0])
-                )
-                if not match:
-                    raise forms.ValidationError(
-                        {
-                            "validation": _(
-                                'Not a valid validation format ie. ["revenue_pin_validation_base_url:https://api.example.com/"].'  # noqa
-                            )
-                        }
-                    )
-
-        if field.field_type == FormFieldChoices.NATIONAL_ID:
-            if not validation:
+            if validation_endpoint and not validation_endpoint.is_enabled:
                 raise forms.ValidationError(
-                    {"validation": _("validation are required.")}
+                    {
+                        "validation_endpoint": _(
+                            "validation endpoint must be enabled" "is enabled = True"
+                        )
+                    }
                 )
-            if validation:
-                match = re.fullmatch(id_validation_base_url_pattern, str(validation[0]))
-                if not match:
-                    raise forms.ValidationError(
-                        {
-                            "validation": _(
-                                'Not a valid validation format ie. ["id_validation_base_url:https://api.example.com"].'  # noqa
-                            )
-                        }
-                    )
-
         if required and hidden:
             raise forms.ValidationError(
                 {"required": _("Required cannot be True if Hidden is True.")}
@@ -116,8 +102,8 @@ class FieldPropertyForm(forms.ModelForm):
         if validation and field.field_type not in [
             FormFieldChoices.DATE_RANGE,
             FormFieldChoices.DATE_TIME_RANGE,
-            FormFieldChoices.KRA_PIN,
-            FormFieldChoices.NATIONAL_ID,
+            FormFieldChoices.EXTERNAL_VALIDATION_ENDPOINT,
+            FormFieldChoices.EXTERNAL_EVALUATION_ENDPOINT,
         ]:
             for _s in validation:
                 match = re.fullmatch(validation_pattern, _s)
@@ -125,7 +111,8 @@ class FieldPropertyForm(forms.ModelForm):
                     raise forms.ValidationError(
                         {
                             "validation": _(
-                                'Not a valid validation format ie. ["min_length:5","max_length:10"].'  # noqa
+                                "Not a valid validation format ie. "
+                                '["min_length:5","max_length:10"].'  # noqa
                             )
                         }
                     )
