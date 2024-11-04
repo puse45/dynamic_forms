@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models
 from django.utils.text import slugify
 
 from base.models import BaseModel
@@ -90,16 +90,6 @@ class FieldProperty(BaseModel):
             "form",
             "index",
         )
-
-    def save(self, *args, **kwargs):
-        with transaction.atomic():
-            max_index = (
-                FieldProperty.objects.filter(field=self.field, form=self.form)
-                .values_list("index", flat=True)
-                .last()
-            )
-            self.index = (max_index or 0) + 1
-        return super().save()
 
     @property
     def name(self):

@@ -116,5 +116,9 @@ class FieldPropertyForm(forms.ModelForm):
                             )
                         }
                     )
-
+        if field.field_type == FormFieldChoices.NESTED and field.nested_form:
+            if field.nested_form.form_field_property.filter(field=field):
+                raise forms.ValidationError(
+                    _("This is not permitted, as it will lead to circular imports.")
+                )
         return self.cleaned_data
