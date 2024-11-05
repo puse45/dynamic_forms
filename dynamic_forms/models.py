@@ -88,7 +88,6 @@ class FieldProperty(BaseModel):
         unique_together = (
             "field",
             "form",
-            "index",
         )
 
     @property

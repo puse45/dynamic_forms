@@ -41,6 +41,7 @@ class FieldPropertyForm(forms.ModelForm):
     def clean(self):
         field = self.cleaned_data.get("field")
         required = self.cleaned_data.get("required")
+        form = self.cleaned_data.get("form")
         validation = self.cleaned_data.get("validation")
         validation_endpoint = self.cleaned_data.get("validation_endpoint")
         options = self.cleaned_data.get("options")
@@ -117,8 +118,17 @@ class FieldPropertyForm(forms.ModelForm):
                         }
                     )
         if field.field_type == FormFieldChoices.NESTED and field.nested_form:
-            if field.nested_form.form_field_property.filter(field=field):
+            if (
+                field.nested_form.form_field_property.filter(field=field)
+                or field.nested_form.form_field_property.filter(
+                    field__field_type=FormFieldChoices.NESTED, form=field.nested_form
+                )
+                or field.nested_form == form
+            ):
                 raise forms.ValidationError(
-                    _("This is not permitted, as it will lead to circular imports.")
+                    _(
+                        "This is not permitted, as it will lead to circular imports. "
+                        f"This field contains same form {field.nested_form.name}"
+                    )
                 )
         return self.cleaned_data
